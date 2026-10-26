@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hafalan 80 Kotoba Pabrik - Qabil</title>
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a, #1e3a8a);
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --accent-color: #f97316;
+            --accent-hover: #ea580c;
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-gradient);
+            color: #fff;
+            margin: 0;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            margin: 0 0 6px 0;
+            font-size: clamp(20px, 5vw, 24px);
+            font-weight: 700;
+        }
+
+        p.subtitle {
+            color: #cbd5e1;
+            font-size: clamp(13px, 3vw, 14px);
+            margin: 0 0 16px 0;
+        }
+
+        .counter {
+            background: rgba(255, 255, 255, 0.15);
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        /* Flashcard Styling */
+        .flashcard {
+            background: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 16px;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .flashcard:hover {
+            transform: translateY(-2px);
+        }
+
+        .jp-word {
+            font-size: clamp(24px, 6vw, 32px);
+            font-weight: 800;
+            color: #b91c1c;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .reading {
+            font-size: clamp(14px, 3.5vw, 16px);
+            color: #475569;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .meaning {
+            font-size: clamp(16px, 4vw, 20px);
+            color: #0f172a;
+            font-weight: 700;
+            border-top: 2px dashed #cbd5e1;
+            padding-top: 12px;
+            width: 100%;
+            display: none; /* Disembunyikan dulu sebelum diklik */
+        }
+
+        .flashcard.show-meaning .meaning {
+            display: block;
+        }
+
+        .hint {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Controls / Buttons */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        button {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 10px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        button:active {
+            transform: scale(0.96);
+        }
+
+        .audio-btn {
+            background: #0284c7;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .audio-btn:hover { background: #0369a1; }
+
+        @media (min-width: 768px) {
+            body { padding: 24px; }
+            .container { padding: 35px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Flashcard 80 Kotoba Pabrik 🇯🇵</h1>
+        <p class="subtitle">Ketuk kartu untuk melihat arti bahasa Indonesia</p>
+        <div class="counter" id="counterText">Kotoba ke-1 dari 80</div>
+
+        <!-- Kartu Hafalan -->
+        <div class="flashcard" id="cardBox" onclick="toggleMeaning()">
+            <div class="jp-word" id="jpText">-</div>
+            <div class="reading" id="readingText">-</div>
+            <div class="meaning" id="meaningText">-</div>
+            <div class="hint" id="hintText">👆 Ketuk untuk buka arti</div>
+        </div>
+
+        <!-- Tombol Audio -->
+        <div style="margin-bottom: 14px;">
+            <button class="audio-btn" onclick="playAudio()">🔊 Dengar Pelafalan Jepang</button>
+        </div>
+
+        <!-- Kontrol Navigasi -->
+        <div class="controls">
+            <button onclick="prevCard()">⬅️ Sebelumnya</button>
+            <button onclick="shuffleCards()" style="background: #8b5cf6;">🔀 Acak</button>
+            <button onclick="nextCard()">Selanjutnya ➡️</button>
+        </div>
+    </div>
+
+    <script>
+        const kotobaList = [
+            { jp: "調理する", reading: "ちょうりする - chouri suru", id: "Memasak (ada kesan profesional dan pakai teknik tertentu)" },
+            { jp: "野菜", reading: "やさい - yasai", id: "Sayuran" },
+            { jp: "果物", reading: "くだもの - kudamono", id: "Buah" },
+            { jp: "お肉", reading: "おにく - oniku", id: "Daging" },
+            { jp: "お弁当", reading: "おべんとう - obentou", id: "Makanan box / bento" },
+            { jp: "生鮮食品", reading: "せいせんしょくひん - seisen shokuhin", id: "Makanan segar" },
+            { jp: "新鮮食品", reading: "しんせんしょくひん - shinsen shokuhin", id: "Makanan segar (sebutan lain)" },
+            { jp: "冷凍食品", reading: "れいとうしょくひん - reitou shokuhin", id: "Makanan beku / frozen food" },
+            { jp: "原材料", reading: "げんざいりょう - genzairyou", id: "Bahan baku mentah" },
+            { jp: "生もの", reading: "なまもの - namamono", id: "Makanan mentah" },
+            { jp: "畜産食料品", reading: "ちくさんしょくりょうひん - chikusan shokuryouhin", id: "Bahan makanan hewani (telur, susu, dll)" },
+            { jp: "水産食料品", reading: "すいさんしょくりょうひん - suisan shokuryouhin", id: "Makanan berbahan ikan-ikanan" },
+            { jp: "野菜缶詰", reading: "やさいかんづめ - yasai kandzume", id: "Sayuran kaleng" },
+            { jp: "果実缶詰", reading: "かじつかんづめ - kajitsu kandzume", id: "Buah-buahan kaleng" },
+            { jp: "農産保存食料品", reading: "のうさんほぞんしょくりょうひん - nousan hozon shokuryouhin", id: "Buah dan sayuran yang diawetkan" },
+            { jp: "調味料", reading: "ちょうみりょう - choumiryou", id: "Bumbu" },
+            { jp: "糖類", reading: "とうるい - tourui", id: "Gula (sebutan zat)" },
+            { jp: "砂糖", reading: "さとう - satou", id: "Gula pasir" },
+            { jp: "精穀", reading: "せいこく - seikoku", id: "Biji-bijian" },
+            { jp: "穀物", reading: "こくもつ - kokumotsu", id: "Gandum" },
+            { jp: "製粉", reading: "せいふん - seifun", id: "Pembuatan tepung dari biji-bijian" },
+            { jp: "パン", reading: "pan", id: "Roti" },
+            { jp: "菓子", reading: "かし - kashi", id: "Kue, cemilan" },
+            { jp: "動植物油脂", reading: "どうぶつゆし - doubutsu yushi", id: "Minyak hewani/nabati" },
+            { jp: "豚油脂", reading: "ぶたゆし - butayushi", id: "Minyak babi" },
+            { jp: "植物油脂", reading: "しょくぶつゆし - shokubutsu yushi", id: "Minyak nabati" },
+            { jp: "仕分け", id: "しわけ - shiwake", reading: "Proses memilah bahan" }, // fixed mapping structure below
+            { jp: "仕分け", reading: "しわけ - shiwake", id: "Proses memilah bahan" },
+            { jp: "包装", reading: "ほうそう - housou", id: "Pengepakan, pengemasan" },
+            { jp: "食材", reading: "しょくざい - shokuzai", id: "Bahan makanan" },
+            { jp: "加工する", reading: "かこうする - kakou suru", id: "Mengolah" },
+            { jp: "食材を加工する", reading: "しょくざいをかこうする - shokuzai o kakou suru", id: "Mengolah bahan makanan" },
+            { jp: "魚の捌き方", reading: "さかなのさばきかた - sakana no sabakikata", id: "Cara memotong ikan" },
+            { jp: "お肉の切り分け", reading: "おにくのきりわけ - oniku no kiriwake", id: "Pemotongan bagian daging" },
+            { jp: "ベルトコンベアー", reading: "berutokonbeyaa", id: "Belt conveyor (mesin pembawa material)" },
+            { jp: "ベルトコンベアーに乗せられて運ばれる", reading: "berutokonbeyaa ni noserarete hakobareru", id: "Ditaruh dan diangkut belt conveyor" },
+            { jp: "ツヤ出し用", reading: "つやだしよう - tsuyadashiyou", id: "Cairan pengkilap roti" },
+            { jp: "パン生地", reading: "ぱんきじ - pan kiji", id: "Adonan roti" },
+            { jp: "塗る", reading: "ぬる - nuru", id: "Mengoles" },
+            { jp: "パン生地にツヤ出し用の卵をハケで塗ったりします", reading: "pan kiji ni tsuyadashiyou no tamago o hake de nuttari shimasu", id: "Mengoleskan telur pengkilap pada adonan roti dengan kuas" },
+            { jp: "パウチ", reading: "pauchi", id: "Kantung / pouch" },
+            { jp: "パウチごとに分けられる", reading: "pauchi goto ni wakerareru", id: "Dipisah/dibagi tiap kemasan" },
+            { jp: "総菜", reading: "そうざい - souzai", id: "Makanan jadi / lauk-pauk" },
+            { jp: "総菜を詰める", reading: "そうざいをつめる - souzai o tsumeru", id: "Menaruh (mengepak ke dalam kemasan) makanan jadi" },
+            { jp: "シール", reading: "shiiru", id: "Label / stiker" },
+            { jp: "袋", reading: "ふくろ - fukuro", id: "Kantung" },
+            { jp: "パッケージや袋に表示シールを貼る", reading: "pakkeeji ya fukuro ni hyouji shiiru o haru", id: "Menempelkan label pada kemasan atau kantung" },
+            { jp: "蓋", reading: "ふた - futa", id: "Tutup kemasan (tutup botol, dll)" },
+            { jp: "蓋をする作業", reading: "ふたをするさぎょう - futa o suru sagyou", id: "Pekerjaan memasang tutup kemasan" },
+            { jp: "腐敗", reading: "ふはい - fuhai", id: "Busuk" },
+            { jp: "食品の腐敗", reading: "しょくひんのふはい - shokuhin no fuhai", id: "Makanan busuk" },
+            { jp: "保存する", reading: "ほぞんする - hozon suru", id: "Menyimpan" },
+            { jp: "温室", reading: "おんしつ - onshitsu", id: "Suhu ruangan" },
+            { jp: "室温保存", reading: "しつおんほぞん - shitsuon hozon", id: "Penyimpanan di suhu ruangan" },
+            { jp: "日勤", reading: "にっきん - nikkin", id: "Shift siang" },
+            { jp: "夜勤", reading: "やきん - yakin", id: "Shift malam" },
+            { jp: "下処理する", reading: "したしょりする - shitashori suru", id: "Menyiapkan / persiapan awal bahan" },
+            { jp: "材料を下処理する", reading: "ざいりょうをしたしょりする - zairyou o shitashori suru", id: "Menyiapkan bahan" },
+            { jp: "盛りつける", reading: "もりつける - moritsukeru", id: "Menghias atau menata makanan jadi" },
+            { jp: "異物", reading: "いぶつ - ibutsu", id: "Benda asing" },
+            { jp: "混入", reading: "こんにゅう - konnyuu", id: "Kontaminasi" },
+            { jp: "異物混入が起こらないように", reading: "いぶつこんにゅうがおこらないように - ibutsu konnyuu ga okoranai youni", id: "Usahakan tidak terjadi kontaminasi benda asing" },
+            { jp: "賞味期限", reading: "しょうみきげん - shoumi kigen", id: "Tanggal kadaluarsa konsumsi" },
+            { jp: "衛生面", reading: "えいせいめん - eiseimen", id: "Higienis, sisi kebersihan" },
+            { jp: "消毒", reading: "しょうどく - shoudoku", id: "Disinfeksi, sterilisasi tangan" },
+            { jp: "着替え", reading: "きがえ - kigae", id: "Ganti baju khusus kerja" },
+            { jp: "毛髪やほこりを取り除く", reading: "もうはつやほこりをとりのぞく - mouhatsu ya hokori o torinozoku", id: "Menghilangkan rambut dan debu" },
+            { jp: "パン工場", reading: "ぱんこうじょう - pan koujou", id: "Pabrik roti" },
+            { jp: "弁当工場", reading: "べんとうこうじょう - bentou koujou", id: "Pabrik bento (makanan box)" },
+            { jp: "カップ麺の製造工場", reading: "かっぷめんのせいぞうこうじょう - kappu men no seizou koujou", id: "Pabrik pembuatan mie instan gelas" },
+            { jp: "食品製造工場", reading: "しょくひんせいぞうこうじょう - shokuhin seizou koujou", id: "Pabrik pengolahan makanan" },
+            { jp: "冷凍食品工場", reading: "れいとうしょくひんこうじょう - reitou shokuhin koujou", id: "Pabrik pengolahan makanan beku" },
+            { jp: "食品包装", reading: "しょくひんほうそう - shokuhin housou", id: "Kemasan produk makanan" },
+            { jp: "梱包", reading: "こんぽう - konpou", id: "Packing, pengemasan" },
+            { jp: "出荷", reading: "しゅっか - shukka", id: "Pengiriman" },
+            { jp: "マイナス15度以下", reading: "マイナスじゅうごどいか - mainasu juu go do ika", id: "Di bawah 15 derajat Celsius" },
+            { jp: "飲料メーカー工場", reading: "いんりょうめえかこうじょう - inryou meekaa koujou", id: "Pabrik pembuatan minuman kemasan" },
+            { jp: "殺菌", reading: "さっきん - sakkin", id: "Sterilisasi" },
+            { jp: "機械", reading: "きかい - kikai", id: "Mesin" },
+            { jp: "操作", reading: "そうさ - sousa", id: "Pengoperasian" },
+            { jp: "検品", reading: "けんぴん - kenpin", id: "Inspeksi kualitas" }
+        ];
+
+        let currentIndex = 0;
+        let isMeaningShown = false;
+
+        function displayCard() {
+            const current = kotobaList[currentIndex];
+            document.getElementById("jpText").innerText = current.jp;
+            document.getElementById("readingText").innerText = current.reading;
+            document.getElementById("meaningText").innerText = current.id;
+            document.getElementById("counterText").innerText = `Kotoba ke-${currentIndex + 1} dari ${kotobaList.length}`;
+            
+            // Reset card state
+            isMeaningShown = false;
+            document.getElementById("cardBox").classList.remove("show-meaning");
+            document.getElementById("hintText").innerText = "👆 Ketuk untuk buka arti";
+        }
+
+        function toggleMeaning() {
+            const card = document.getElementById("cardBox");
+            isMeaningShown = !isMeaningShown;
+            if (isMeaningShown) {
+                card.classList.add("show-meaning");
+                document.getElementById("hintText").innerText = "👇 Ketuk untuk tutup arti";
+            } else {
+                card.classList.remove("show-meaning");
+                document.getElementById("hintText").innerText = "👆 Ketuk untuk buka arti";
+            }
+        }
+
+        function nextCard() {
+            if (currentIndex < kotobaList.length - 1) {
+                currentIndex++;
+            } else {
+                currentIndex = 0; // Balik ke awal kalau habis
+            }
+            displayCard();
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+            } else {
+                currentIndex = kotobaList.length - 1; // Ke akhir kalau di awal
+            }
+            displayCard();
+        }
+
+        function shuffleCards() {
+            for (let i = kotobaList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [kotobaList[i], kotobaList[j]] = [kotobaList[j], kotobaList[i]];
+            }
+            currentIndex = 0;
+            displayCard();
+        }
+
+        function playAudio() {
+            const current = kotobaList[currentIndex];
+            // Ambil bagian kanji/kana saja untuk dibaca speech synthesizer
+            const textToSpeak = current.jp;
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = 'ja-JP';
+            utterance.rate = 0.85; // Sedikit pelan agar jelas
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Muat kartu pertama saat halaman dibuka
+        window.onload = displayCard;
+    </script>
+</body>
+</html>

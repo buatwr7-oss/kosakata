@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#293241">
+    <meta name="description" content="Flashcard dan kuis kosakata bahasa Jepang untuk JFT / SSW">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Hafalan JFT">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Hafalan JFT SSW</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <style>
+        :root {
+            --navy: #293241; --dot: #3d5a80; --coral: #ee6c4d; --sky: #98c1d9;
+            --ice: #e0fbfc; --sun: #ffd166; --ok: #06d6a0; --bad: #ef476f;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { margin: 0; height: 100%; }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+            font-weight: 800;
+            background-color: var(--navy);
+            background-image: radial-gradient(var(--dot) 2px, transparent 2px);
+            background-size: 20px 20px;
+            color: #fff;
+            height: 100vh; height: 100dvh; overflow: hidden;
+            padding: calc(10px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+            display: flex; justify-content: center;
+        }
+        button, select { font: inherit; font-weight: 900; touch-action: manipulation; }
+
+        .app {
+            width: 100%; max-width: 520px; height: 100%; min-height: 0;
+            display: flex; flex-direction: column; gap: 10px;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        /* ---------- Header ---------- */
+        .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        h1 {
+            margin: 0; font-size: 22px; color: var(--coral);
+            text-transform: uppercase; letter-spacing: 1.5px;
+            text-shadow: 2px 2px 0 #000; -webkit-text-stroke: 1px #000;
+        }
+        .install {
+            display: none; padding: 7px 12px; font-size: 13px; cursor: pointer;
+            border: 3px solid #000; border-radius: 12px; background: var(--sun); color: #000;
+            box-shadow: 3px 3px 0 #000;
+        }
+        .install:active { transform: translate(3px, 3px); box-shadow: none; }
+
+        select {
+            width: 100%; padding: 12px 15px; font-size: 16px;
+            border: 3px solid #000; border-radius: 12px;
+            background: var(--ice); color: #000;
+            box-shadow: 4px 4px 0 #000; outline: none;
+            appearance: none; -webkit-appearance: none;
+            text-align: center; text-align-last: center;
+        }
+
+        .row { display: flex; gap: 8px; }
+        .chip {
+            flex: 1; padding: 9px 6px; font-size: 13px; cursor: pointer;
+            border: 3px solid #000; border-radius: 12px;
+            background: var(--ice); color: #000; box-shadow: 3px 3px 0 #000;
+            transition: transform .08s, box-shadow .08s, background .15s;
+            white-space: nowrap;
+        }
+        .chip:active { transform: translate(3px, 3px); box-shadow: none; }
+        .chip.on { background: var(--sun); }
+        .tabs .chip { font-size: 15px; padding: 10px 6px; }
+        .tabs .chip.on { background: var(--coral); color: #fff; }
+
+        .stats { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .bar { flex: 1; height: 16px; border: 3px solid #000; border-radius: 99px; background: #000; overflow: hidden; }
+        .bar > i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+        #statText { white-space: nowrap; color: var(--ice); }
+        .reset {
+            border: 2px solid var(--dot); background: #000; color: var(--ice);
+            border-radius: 99px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+        }
+
+        /* ---------- Kartu ---------- */
+        .stage { flex: 1; min-height: 0; display: flex; }
+        .card-container {
+            perspective: 1000px; width: 100%; height: 100%; cursor: pointer;
+            transition: transform .19s ease-in, opacity .19s ease-in;
+        }
+        .card-container.out-right { transform: translateX(110%) rotate(10deg); opacity: 0; }
+        .card-container.out-left  { transform: translateX(-110%) rotate(-10deg); opacity: 0; }
+        .card-container.pop { animation: pop .2s ease-out; }
+        @keyframes pop { from { transform: scale(.94); opacity: .5; } to { transform: scale(1); opacity: 1; } }
+
+        .card {
+            width: 100%; height: 100%; position: relative;
+            transition: transform .6s cubic-bezier(.175, .885, .32, 1.275);
+            transform-style: preserve-3d;
+        }
+        .card.flipped { transform: rotateY(180deg) scale(.95); }
+
+        .face {
+            position: absolute; inset: 0;
+            backface-visibility: hidden; -webkit-backface-visibility: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-radius: 20px; border: 4px solid #000; box-shadow: 6px 6px 0 #000;
+            padding: 20px; text-align: center;
+        }
+        .front { background: var(--sky); color: #000; }
+        .back { background: var(--coral); color: #fff; transform: rotateY(180deg); }
+
+        .label {
+            font-size: 12px; font-weight: 900; background: #000; color: #fff;
+            padding: 5px 15px; border-radius: 20px; margin-bottom: 20px;
+            text-transform: uppercase; letter-spacing: 1.5px;
+        }
+        .word { line-height: 1.25; word-break: break-word; font-weight: 900; }
+        .sub { margin-top: 10px; font-size: 16px; opacity: .8; }
+
+        .badge {
+            position: absolute; top: 12px; right: 12px; display: none;
+            background: #000; color: var(--ok); font-size: 12px;
+            padding: 4px 10px; border-radius: 99px;
+        }
+        .known .badge { display: block; }
+        .hint { position: absolute; bottom: 12px; left: 0; right: 0; font-size: 11px; opacity: .55; font-weight: 800; }
+
+        /* ---------- Tombol aksi ---------- */
+        .actions, .nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+        .btn {
+            padding: 16px 8px; font-size: 16px; cursor: pointer; color: #000;
+            border: 3px solid #000; border-radius: 14px; background: var(--ice);
+            box-shadow: 4px 4px 0 #000; transition: transform .08s, box-shadow .08s;
+        }
+        .btn:active { transform: translate(4px, 4px); box-shadow: none; }
+        .btn.no { background: var(--bad); color: #fff; }
+        .btn.yes { background: var(--ok); }
+        .btn.sound { background: var(--sun); padding: 16px 20px; }
+        .btn.nav-b { padding: 13px 8px; }
+        .counter {
+            background: #000; border: 2px solid var(--dot); border-radius: 99px;
+            padding: 6px 16px; font-size: 15px; min-width: 100px; text-align: center; color: var(--ice);
+        }
+
+        /* ---------- Kuis ---------- */
+        .quiz { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 10px; }
+        .q-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ice); }
+        .q-card {
+            flex: 1; min-height: 110px; position: relative;
+            background: var(--sky); color: #000;
+            border: 4px solid #000; border-radius: 20px; box-shadow: 6px 6px 0 #000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 16px; text-align: center;
+        }
+        .mini {
+            position: absolute; right: 10px; bottom: 10px; width: 44px; height: 44px;
+            display: none; align-items: center; justify-content: center; font-size: 20px; cursor: pointer;
+            border: 3px solid #000; border-radius: 50%; background: var(--sun);
+        }
+        .opts { display: grid; gap: 10px; }
+        .opt {
+            padding: 14px 12px; font-size: 17px; cursor: pointer; color: #000;
+            border: 3px solid #000; border-radius: 14px; background: var(--ice);
+            box-shadow: 4px 4px 0 #000; text-align: center; word-break: break-word;
+            transition: background .12s;
+        }
+        .opt.jp { font-size: 22px; }
+        .opt:active { transform: translate(4px, 4px); box-shadow: none; }
+        .opt.right { background: var(--ok); }
+        .opt.wrong { background: var(--bad); color: #fff; }
+
+        .quizmode .stage, .quizmode .actions, .quizmode .nav { display: none; }
+        .quizmode .quiz { display: flex; }
+
+        .toast {
+            position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom));
+            transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+            background: #000; color: #fff; border: 2px solid var(--sun);
+            padding: 10px 18px; border-radius: 99px; font-size: 14px; max-width: 90vw; text-align: center;
+            transition: opacity .2s, transform .2s;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        @media (max-height: 640px) {
+            .app { gap: 7px; }
+            h1 { font-size: 19px; }
+            .btn { padding: 12px 8px; }
+            .btn.sound { padding: 12px 18px; }
+            .opt { padding: 11px 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app" id="app">
+    <div class="top">
+        <h1>🔥 Hafalan JFT</h1>
+        <button class="install" id="installBtn">📲 Instal</button>
+    </div>
+
+    <select id="chapterSelect" aria-label="Pilih bab"></select>
+
+    <div class="row tabs">
+        <button class="chip" id="tabCard">🃏 Kartu</button>
+        <button class="chip" id="tabQuiz">📝 Kuis</button>
+    </div>
+    <div class="row">
+        <button class="chip" id="dirBtn"></button>
+        <button class="chip" id="shuffleBtn"></button>
+        <button class="chip" id="unknownBtn">🎯 Belum hafal</button>
+    </div>
+
+    <div class="stats">
+        <div class="bar"><i id="barFill"></i></div>
+        <span id="statText"></span>
+        <button class="reset" id="resetBtn" aria-label="Reset progres">↺ Reset</button>
+    </div>
+
+    <!-- Mode kartu -->
+    <div class="stage">
+        <div class="card-container" id="cc">
+            <div class="card" id="card">
+                <div class="face front">
+                    <span class="badge">✓ Hafal</span>
+                    <span class="label" id="fLabel"></span>
+                    <span class="word" id="fWord">Memuat...</span>
+                    <span class="hint">ketuk = balik · geser kanan = hafal · geser kiri = belum</span>
+                </div>
+                <div class="face back">
+                    <span class="badge">✓ Hafal</span>
+                    <span class="label" id="bLabel"></span>
+                    <span class="word" id="bWord"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="actions" id="actions">
+        <button class="btn no" id="noBtn">✗ Belum</button>
+        <button class="btn sound" id="soundBtn" aria-label="Putar suara">🔊</button>
+        <button class="btn yes" id="yesBtn">✓ Hafal</button>
+    </div>
+    <div class="nav" id="nav">
+        <button class="btn nav-b" id="prevBtn">&#9664; Prev</button>
+        <div class="counter" id="progressText">0 / 0</div>
+        <button class="btn nav-b" id="nextBtn">Next &#9654;</button>
+    </div>
+
+    <!-- Mode kuis -->
+    <div class="quiz" id="quiz">
+        <div class="q-meta"><span id="qProgress"></span><span id="qScore"></span></div>
+        <div class="q-card">
+            <span class="label" id="qLabel"></span>
+            <span class="word" id="qWord"></span>
+            <span class="sub" id="qSub"></span>
+            <button class="mini" id="qSpeak" aria-label="Putar suara">🔊</button>
+        </div>
+        <div class="opts" id="opts"></div>
+    </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const rawData = `
+**Bab 1**
+- orang jepang: にほんじん
+- jepang: にほん
+- berapa tahun (umur): なんさい
+- nama: なまえ
+- siapa: どなた
+- yang mana: どちら
+- china: ちゅうごく
+- siapa: だれ
+- universitas: だいがく
+- guru: せんせい
+- jakarta: ジャカルタ
+- perkenalan: じこしょうかい
+- ~tahun (umur): ～さい
+- karet: ゴム
+- peserta magang: けんしゅうせい
+- negara: くに
+- mesin: きかい
+- orang kamboja: カンボジアじん
+- berusahalah: がんばってください
+- korea: かんこく
+- siswa/pelajar: がくせい
+- orang perusahaan: かいしゃいん
+- berapa tahun (umur): おいくつ
+- orang indonesia: インドネシアじん
+- indonesia: インドネシア
+- orang india: インドじん
+- amerika: アメリカ
+- orang itu: あのひと
+- duapuluh tahun: はたち
+- orang: ひと
+- orang filipina: フィリピンじん
+- orang vietnam: ベトナムじん
+- orang malaysia: マレーシアじん
+- saya: わたし
+**Bab 2**
+- itu: あれ
+- kursi: いす
+- pensil: えんぴつ
+- kunci: かぎ
+- tas: かばん
+- kertas: かみ
+- kamera: カメラ
+- mobil: くるま
+- handphone: けいたいでんわ
+- tempat sampah: ゴミばこ
+- ini: これ
+- meteran gulung: コンベックス
+- majalah: ざっし
+- kamus: じしょ
+- pensil mekanik: シャープペンシル
+- direktur utama: しゃちょう
+- koran: しんぶん
+- begitu: そうです
+- itu: それ
+- rokok: たばこ
+- salah: ちがいます
+- meja: つくえ
+- surat: てがみ
+- televisi: テレビ
+- kalkulator: でんたく
+- telepon: でんわ
+- jam: とけい
+- apa: なに / なん
+- buku catatan: ノート
+- asbak: はいざら
+- gunting: はさみ
+- laptop: パソコン
+- palu: ハンマー
+- kasur: ベッド
+- pulpen: ボールペン
+- buku: ほん
+- kaca mata: めがね
+- buku saku: メモちょう
+- korek gas: ライター
+- radio: ラジオ
+- radio kaset: ラジカセ
+**Bab 3**
+- disana: あそこ / あちら
+- berapa (harga): いくら
+- italia: イタリア
+- kamar kecil: おてあらい
+- ~kali/lantai: ～かい
+- perusahaan: かいしゃ
+- pabrik: こうじょう
+- kelas: きょうしつ
+- disini: ここ
+- kantor: じむしょ
+- ruang makan/kantin: しょくどう
+- disitu: そこ / そちら
+- dapur: だいどころ
+- lampu listrik: でんき
+- jerman: ドイツ
+- toilet: トイレ
+- dimana: どこ (どちら)
+- pengecatan: とそう
+- kamar mandi: ふろば
+- kamar: へや
+- asrama: りょう
+**Bab 4**
+- pagi: あさ
+- besok: あした
+- lusa: あさって
+- sarapan pagi: あさごはん
+- bangun tidur: おきます
+- sekarang: いま
+- selesai: おわります
+- 2 hari yang lalu: おととい
+- hari selasa: かようび
+- kemarin: きのう
+- hari ini: きょう
+- dari~: ～から
+- bank: ぎんこう
+- hari jumat: きんようび
+- tadi pagi: けさ
+- hari senin: げつようび
+- restoran: レストラン
+- malam: よる
+- kantor pos: ゆうびんきょく
+- istirahat: やすみます
+- hari kamis: もくようび
+- sampai~: ～まで
+- setiap hari: まいにち
+- setiap malam: まいばん
+- belajar: べんきょうします
+- istirahat siang: ひるやすみ
+- rumah sakit: びょういん
+- malam: ばん
+- bekerja: はたらきます
+- tidur: ねます
+- hari minggu: にちようび
+- hari apa: なんようび
+- jam berapa: なんじ
+- hari sabtu: どようび
+- perpustakaan: としょかん
+- dept. store: デパート
+- kedutaan: たいしかん
+- supermarket: スーパー
+- hari rabu: すいようび
+- pelajaran: じゅぎょう
+- kerja: しごと
+- malam: こんばん
+- tempat kerja lapangan: げんば
+**Bab 5**
+- teman: ともだち
+- tukang cukur (salon): とこや
+- kereta listrik: でんしゃ
+- test/ujian: テスト
+- kereta bawah tanah: ちかてつ
+- ulang tahun: たんじょうび
+- taksi: タクシー
+- minggu lalu: せんしゅう
+- bulan lalu: せんげつ
+- sepeda: じてんしゃ
+- senior: せんぱい
+- tahun ini: ことし
+- junior: こうはい
+- taman: こうえん
+- pacar: こいびと
+- tahun lalu: きょねん
+- datang: きます
+- sekolahan: がっこう
+- keluarga: かぞく
+- pulang: かえります
+- 2 tahun yang lalu: おととし
+- sepeda motor: オートバイ
+- stasiun: えき
+- gedung bioskop: えいがかん
+- rumah: うち
+- kapan: いつ
+- pergi: いきます
+- jalan kaki: あるきます
+- bulan apa: なんがつ
+- tanggal berapa: なんにち
+- bali: バリ
+- toko roti: パンや
+- pesawat terbang: ひこうき
+- sendiri: ひとり
+- toko buku: ほんや
+- bulan depan: らいげつ
+- minggu depan: らいしゅう
+- tahun depan: らいねん
+**Bab 6**
+- bertemu: あいます
+- es krim: アイスクリーム
+- bersama-sama: いっしょに
+- film: えいが
+- minuman keras: おさけ
+- teh: おちゃ
+- membeli: かいます
+- menulis: かきます
+- mendengar: ききます
+- tempat merokok: きつえんじょ
+- susu sapi: ぎゅうにゅう
+- buah-buahan: くだもの
+- sepatu: くつ
+- teh jepang: こうちゃ
+- kopi: コーヒー
+- diatas jam 12 siang: ごご
+- ikan: さかな
+- sepakbola: サッカー
+- jam tangan: うでどけい
+- adik perempuan: いもうと
+- sakit: いたい
+- kakak laki-laki: あに
+- memberi: あげます
+- lobi: ロビー
+- masakan: りょうり
+- sayuran: やさい
+- membaca: よみます
+- air: みず
+- melihat: みます
+- bir: ビール
+- badminton: バドミントン
+- pesta: パーティー
+- minum: のみます
+- daging: にく
+- mengambil: とります
+- tenis: テニス
+- coklat: チョコレート
+- telur: たまご
+- makan: たべます
+- selanjutnya: それから
+- menghisap: すいます
+- pekerjaan rumah: しゅくだい
+- jus: ジュース
+- kemeja/baju: シャツ
+- foto: しゃしん
+- melakukan: します
+**Bab 7**
+- ibu: おかあさん
+- mengajar: おしえます
+- uang: おかね
+- semoga cepat sembuh: おだいじに
+- bapak: おとうさん
+- adik laki-laki: おとうと
+- perut: おなか
+- kakak laki-laki: おにいさん
+- oleh-oleh: おみやげ
+- selamat: おめでとう
+- menyenangkan: おもしろい
+- musik: おんがく
+- meminjamkan: かします
+- badan: からだ
+- meminjam: かります
+- buku pelajaran: きょうかしょ
+- memotong: きります
+- hati-hati: きをつけて
+- penghapus karet: けしゴム
+- sehat: げんき
+- karangan (cerita): さくぶん
+- selamat tinggal: さようなら
+- memperbaiki: しゅうりします
+- rok: スカート
+- suka: すき
+- cepat (segera): すぐ
+- kunci pas: スパナ
+- sendok: スプーン
+- celana: ズボン
+- semuanya: ぜんぶ
+- tidak apa-apa: だいじょうぶ
+- berat (perasaan): たいへん
+- ayah: ちち
+- tangan: て
+- kaset/plester: テープ
+- tapi: でも
+- kenapa: どうしましたか
+- silahkan: どうぞ
+- obeng: ドライバー
+- pisau: ナイフ
+- belajar: ならいます
+- dasi: ネクタイ
+- sumpit: はし
+- ibu (sendiri): はは
+- bunga: はな
+- garpu: フォーク
+- hadiah: プレゼント
+- tang/gegep: ペンチ
+- sampai nanti: また
+- belum: まだ
+- sudah: もう
+- menerima: もらいます
+- apel: りんご
+- laporan: レポート
+- biru: あおい
+- merah: あかい
+**Bab 8**
+- baru: あたらしい
+- panas/tebal: あつい
+- baik/bagus: いい、よい
+- sibuk: いそがしい
+- enak: おいしい
+- banyak: おおい
+- besar: おおきい
+- kuil: おてら
+- payung: かさ
+- penyanyi: かしゅ
+- dinding: かべ
+- ayu, menawan: かわいい
+- perasaan enak/baik: きもちがいい
+- sepi (perasaan): さびしい
+- cantik/bersih: きれい
+- udara: くうき
+- hitam: くろい
+- konstruksi bangunan: けんせつ
+- sedih: さみしい
+- dingin (suhu): さむい
+- tenang: しずか
+- kemacetan: じゅうたい
+- putih: しろい
+- baik hati: しんせつ
+- sejuk: すずしい
+- punggung: せ
+- kehidupan: せいかつ
+- makanan: たべもの
+- tinggi/mahal: たかい
+- senang: たのしい
+- kecil: ちいさい
+- dingin (benda): つめたい
+- embun: つゆ
+- bagaimana: どう
+- kadang-kadang: ときどき
+- tempat: ところ
+- sangat: とても
+- ~yang bagaimana: どんな～
+- ramai: にぎやか
+- mewarnai: ぬります
+- tampan: ハンサム
+- senggang: ひま
+- musim dingin: ふゆ
+- lama/tua: ふるい
+- kampung halaman: ふるさと
+- cat: ペンキ
+- rindu kampung halaman: ホームシック
+- kota: まち
+- hijau/tumbuhan: みどり
+- susah: むずかしい
+- gampang: やさしい
+- murah: やすい
+- gunung: やま
+- terkenal: ゆうめい
+- jelek: わるい
+**Bab 9**
+- kaki: あし
+- minuman: のみもの
+- demam: ねつ
+- daging ayam: とりにく
+- durian: ドリアン
+- mengapa: どうして
+- cabe: とうがらし
+- memakai: つかいます
+- banyak: たくさん
+- sangat banyak: だいたい
+- sama sekali: ぜんぜん
+- olahraga: スポーツ
+- sedikit: すこし
+- renang: すいえい
+- pintar: じょうず
+- huruf: じ
+- kantor kecamatan: こうみんかん
+- sandal: サンダル
+- luka: けが
+- obat: くすり
+- benci: きらい
+- karaoke: カラオケ
+- pedas: からい
+- lagu: うた
+- buah murbei: いちご
+- ada (benda): あります
+- tidak begitu: あまり
+- manis: あまい
+- kartun: アニメ
+- gigi: は
+- mual: はきけ
+- bola volly: バレーボール
+- piano: ピアノ
+- daging babi: ぶたにく
+- bodoh: へた
+- horor: ホラー
+- toko: みせ
+- melon: メロン
+- barang: もの
+- sering/sangat: よく
+- huruf latin: ローマじ
+- rock (musik): ロック
+**Bab 10**
+- diantara: あいだ
+- sabuk keselamatan: あんぜんたい
+- papan: いた
+- ada (bernyawa): います
+- atas: うえ
+- perusahaan penerima: うけいれきぎょう
+- belakang: うしろ
+- orang asing: がいこくじん
+- kantor balai kota: しやくしょ
+- kotak peralatan: こうぐばこ
+- mesin foto copy: コピーき
+- penuh, sesak: こみます
+- rusak: こわれます
+- mini market: コンビニ
+- bawah: した
+- pegawai: じゅうぎょういん
+- akhir pekan: しゅうまつ
+- penggaris: じょうぎ
+- pusat perbelanjaan: ショッピングセンター
+- luar: そと
+- lemari: たな
+- bawah tanah: ちか
+- tempat parkir: ちゅうしゃじょう
+- samping: となり
+- dalam: なか
+- kotak: はこ
+- kucing: ねこ
+- kiri: ひだり
+- obeng plus: プラスドライバー
+- obeng minus: マイナスドライバー
+- depan: まえ
+- jendela: まど
+- kanan: みぎ
+- samping: よこ
+- kulkas/lemari es: れいぞうこ
+- berapa buah: いくつ
+- selalu: いつも
+**Bab 11**
+- anjing: いぬ
+- mengirim: おくります
+- kakak perempuan (orang lain): おねえさん
+- istirahat (cuti): きゅうけいします
+- saudara kandung: きょうだい
+- kaos kaki: くつした
+- meninjau: けんがくします
+- telepon internasional: こくさいでんわ
+- konser: コンサート
+- praktek: じっしゅうします
+- peserta praktek: じっしゅうせい
+- makan: しょくじします
+- oleh karena itu: だから
+- berpuasa: だんじきします
+- kemeja: シャツ
+- donat: ドーナツ
+- berapa lama: どのぐらい
+- training center: トレーニングセンター
+- pisang: バナナ
+- setengah tahun: はんとし
+- hamburger: ハンバーガー
+- anggur: ぶどう
+- jeruk: みかん
+- susu: ミルク
+- akan segera: もうすぐ
+- kedua orang tua: りょうしん
+**Bab 12**
+- hujan: あめ
+- perayaan festival: おまつり
+- pagar: かき
+- musim: きせつ
+- karcis: きっぷ
+- berawan: くもり
+- pemandangan: けしき
+- upacara pernikahan: けっこんしき
+- seterusnya: ずっと
+- bumbu: ちょうみりょう
+- yang mana: どちら
+- buah pir: なし
+- kembang api: はなび
+- melihat bunga: はなみ
+- cepat: はやい
+- praktis: べんり
+- hotel: ホテル
+- cerita cinta: ラブストーリー
+- pohon mapel: もみじ
+- baseball: やきゅう
+- anggur (minuman): ワイン
+- muda: わかい
+**Bab 13**
+- kelinci: うさぎ
+- berolahraga: うんどうします
+- mengembalikan: かえします
+- gaji/upah: きゅうりょう
+- lulus: ごうかくします
+- sepatu olahraga: スニーカー
+- perkumpulan olahraga: スポーツクラブ
+- pisau: ナイフ
+- menabung: ちょきんします
+- capek: つかれます
+- mendaftarkan: とうろくします
+- suatu tempat: どこか
+- sesuatu: なにか
+- ingin: ほしい
+- menjemput: むかえます
+- mengelas: ようせつ
+- berkata: いいます
+**Bab 14**
+- bersungguh-sungguh: いっしょうけんめい
+- ruang perawatan: いむしつ
+- menghafal: おぼえます
+- ac: エアコン
+- istri (orang lain): おくさん
+- belokan: かど
+- warung kopi: きっさてん
+- ambulans: きゅうきゅうしゃ
+- bandara: くうこう
+- cukup: けっこうです
+- pakaian kerja: さぎょうふく
+- garam: しお
+- masa depan: しょうらい
+- main ski: スキーします
+- main skate board: スケートします
+- menjelaskan: せつめいします
+- peta: ちず
+- tempat parkir sepeda: ちゅうりんじょう
+- cara penggunaan: つかいかた
+- istri sendiri: つま
+- membantu: てつだいます
+- perancah bangunan: とび
+- batas waktu: のうき
+- paspor: パスポート
+- berbicara: はなします
+- kolam renang: プール
+- turun (hujan): ふります
+- berbelok: まがります
+- menunggu: まちます
+- perlahan-lahan: ゆっくり
+- memanggil: よびます
+- locker room: ロッカールーム
+**Bab 15**
+- membuka: あけます
+- berkumpul: あつまります
+- nanti: あとで
+- apartemen: アパート
+- pintu masuk: いりぐち
+- dokter: いしゃ
+- macam-macam: いろいろな
+- menyanyi: うたいます
+- menjual: うります
+- ahli mesin: エンジニア
+- gambar: え
+- makanan ringan: おかし
+- meletakan: おきます
+- banyak: おおく
+- luar negeri: がいこく
+- tidak masalah: かまいません
+- peraturan: きそく
+- memakai pakaian: きます
+- menikah: けっこんします
+- murid SMU: こうこうせい
+- suara: こえ
+- gelas/cangkir: コップ
+- komputer: コンピューター
+- duluan: さき
+- menyentuh: さわります
+- waktu: じかん
+- bertanya: しつもんします
+- menutup: しめます
+- alamat: じゅうしょ
+- sekolah dasar: しょうがっこう
+- tahu/kenal: しります
+- tinggal: すみます
+- lembar penjelasan: せつめいしょ
+- berat/repot: たいへん
+- contohnya: たとえば
+- SMP: ちゅうがっこう
+- bekerja: つとめます
+- sarung tangan: てぶくろ
+- keluar: でます
+- pintu: ドア
+- pintu keluar: でぐち
+- melewati: とおります
+- panjang: ながい
+- barang: にもつ
+- masuk: はいります
+- memakai: はきます
+- kepala bagian: はんちょう
+- gedung kesenian: びじゅつかん
+- sebelah kiri: ひだりがわ
+- gemuk: ふとい
+- kurus: ほそい
+- sebelah kanan: みぎがわ
+- kawat: ワイヤー
+**Bab 16**
+- lembar jawaban: かいとうようし
+- kartu: カード
+- awas bahaya: あぶない
+- menyebrang: わたります
+- memakai kacamata: めがねをかけます
+- mata: め
+- jalan: みち
+- menyikat: みがきます
+- mic: マイク
+- melapor: ほうこくします
+- bekal makanan: べんとう
+- tidak praktis: ふべん
+- membuka: ひらきます
+- sakit: びょうき
+- kumis: ひげ
+- bunga: はな
+- halte bis: バスてい
+- naik: のります
+- ganti kendaraan: のりかえます
+- boneka: にんぎょう
+- memperbaiki: なおします
+- peralatan: どうぐ
+- menelepon: でんわをかけます
+- dansa: ダンス
+- mencukur kumis: そります
+- sempit: せまい
+- kuat: じょうぶ
+- mempersiapkan: じゅんびします
+- shower: シャワー
+- praktek: じっしゅうします
+- berjalan-jalan: さんぽします
+- anak-anak: こども
+- kue: ケーキ
+- bahaya: きけん
+- nasi kare: カレーライス
+- kertas: かみ
+- memeriksa kembali: かくにんします
+- mengunci: かぎをかけます
+- muka: かお
+- gorden: カーテン
+- belanja: かいものします
+- turun: おります
+- warna: いろ
+- bak berendam: おふろ
+- mencuci: あらいます
+- mandi: あびます
+- membereskan kembali: あとかたづけます
+- pintar: あたまがいいです
+- memberi: あげます
+**Bab 17**
+- ban berputar: ベルトコンベヤー
+- helm: ヘルメット
+- tempat pensil: ペンケース
+- lainnya: ほかの
+- pelindung kepala: ほごぼう
+- tombol: ボタン
+- mematuhi: まもります
+- memperlihatkan: みせます
+- tanda pengenal diri: みぶんしょうめいしょ
+- mengotori: よごします
+- menghubungi: れんらくします
+- lupa: わすれます
+- menyerahkan: わたします
+- dilarang menyalakan api: かきげんきん
+- memakai topi: かぶります
+- larangan merokok: きんえん
+- perangko: きって
+- larangan: きんし
+- hal: こと
+- gula: さとう
+- lembur: ざんぎょうします
+- diri sendiri: じぶん
+- habis: しまいます
+- lampu merah: しんごう
+- saklar: スイッチ
+- khawatir: しんぱいします
+- penting: たいせつ
+- senam: たいそうします
+- dilarang masuk: たちいりきんし
+- berdiri: たちます
+- membuat: つくります
+- nomor telepon: でんわばんごう
+- berhenti: とまります
+- menjadi: なります
+- apa saja: なんでも
+- buku harian: にっき
+- menanggalkan: ぬぎます
+- berlari: はしります
+- membayar: はらいます
+- urutan nomor: ばんごうじゅん
+- api: ひ
+**Bab 18**
+- memancing: つり
+- tepat: ちゃんと
+- turnamen: たいかい
+- hasil: せいせき
+- berangkat: しゅっぱつ
+- hobi: しゅみ
+- gitar: ギター
+- pulang ke tanah air: きこく
+- pasti/harus: かならず
+- berfikir: かんがえます
+- gas: ガス
+- berenang: およぎます
+- pertandingan olahraga: うんどうかい
+- menempuh: うけます
+- memberi salam: あいさつします
+- prosedur / urutan: てじゅん
+- jadi: できます
+- memeriksa: てんけんします
+- mengetuk: ノックします
+- bermain alat musik: ひきます
+- pingpong: ピンポン
+- membongkar: ぶんかいします
+- bowling: ボーリング
+- sampah tidak dapat dibakar: もえないゴミ
+- sampah dapat dibakar: もえるゴミ
+- kran utama: もとせん
+**Bab 19**
+- laut: うみ
+- menjatuhkan: おとします
+- kenyang: おなかがいっぱい
+- bibi: おばさん
+- kebakaran: かじ
+- angin: かぜ
+- pohon: き
+- pakaian ala jepang: きもの
+- kecelakaan: じこ
+- gempa bumi: じしん
+- meninggal: しにます
+- alat pemanas: ストーブ
+- keluar rumah sakit: たいいんします
+- topan: たいふう
+- berangsur-angsur: だんだん
+- disneyland: ディズニーランド
+- meja: テーブル
+- cuaca: てんき
+- terbang: とびます
+- liburan musim panas: なつやすみ
+- masuk rumah sakit: にゅういんします
+- tenggorokan: のど
+- haus: のどがかわきます
+- mendaki: のぼります
+- kapal laut: ふね
+- terbakar: やけます
+- tadi malam: ゆうべ
+- salju: ゆき
+- hati-hati melangkah: あしもとちゅうい
+**Bab 20**
+- lubang: あな
+- minta maaf: あやまります
+- sepatu kerja: あんぜんぐつ
+- minyak: オイル
+- tempat penyimpanan: おきば
+- marah: おこります
+- melepaskan: かいじょします
+- bahan baku: ざいりょう
+- jarak: かんかく
+- menurunkan: さげます
+- gaduh/ribut: さわぎます
+- urutan: じゅんばん
+- hati-hati sebelah atas: ずじょうちゅうい
+- stress: ストレス
+- pajak: ぜいきん
+- membereskan/merapikan: せいりせいとん
+- suara keras: おおごえ
+- dilarang parkir sepeda: ちゅうりんきんし
+- sebentar/sedikit: ちょっと
+- serbuk besi: てっぷん
+- plat besi: てっぱん
+- memindahkan: どかします
+- menghentikan: とめます
+- mengganti: とりかえます
+- bor: ドリル
+- menangis: なきます
+- membuang ingus: はなをかみます
+- ketidakpuasan: ふまん
+- barang cacat: ふりょうひん
+- masker pelindung: ぼうじんマスク
+- pelaksanaan dengan menunjuk jari: ゆびさしこしょうれいこう
+- tuas: レバー
+- tertawa: わらいます
+**Bab 21**
+- menggerakkan: うごかします
+- uang kembalian: おつり
+- suara: おと
+- dengan teliti: きちんと
+- toko obat: くすりや
+- medical cek up: けんこうしんだん
+- melancong: けんぶつします
+- pos polisi: こうばん
+- susah: こまります
+- uang receh: こまかい
+- mencari: さがします
+- mekar: さきます
+- bunga sakura: さくら
+- perintah/tugas: しじ
+- sweater: セーター
+- mengoperasikan: そうさします
+- piring: さら
+- biasanya/pada umumnya: たいてい
+- lampion: ちょうちん
+- gugur: ちります
+- keluar rumah: でかけます
+- menghilangkan: なくします
+- tempat: ばしょ
+- onderdil: ぶひん
+- buku panduan: マニュアル
+- memutar: まわします
+- rapat/pertemuan: ミーティング
+- mengerjakan: やります
+- latihan: れんしゅうします
+**Bab 22**
+- air panas: おゆ
+- perabotan rumah: かぐ
+- vas bunga: かびん
+- kuning: きいろい
+- merakit: くみたてます
+- rusak: こわします
+- sekitar sini: このへん
+- yang akan datang: こんど
+- dompet: さいふ
+- mengajak: さそいます
+- sesal/sayang: ざんねん
+- rice cooker: すいはんき
+- sup: スープ
+- menanak nasi: たきます
+- panci: なべ
+- menjejerkan: ならべます
+- mirip: にます
+- menempatkan: のせます
+- gedung: ビル
+- wajan: フライパン
+- pisau dapur: ほうちょう
+- teko: やかん
+- membakar: やきます
+- janji: やくそく
+- memanaskan: わかします
+**Bab 23**
+- desa: いなか
+- aneh/ganjil: おかしい
+- libur Obon: おぼん休み (おぼんやすみ)
+- beratnya: おもさ
+- menghitung: かぞえます
+- memutuskan: きめます
+- turun/menurun: さがります
+- menghadiri: しゅっせきします
+- memeriksa: しらべます
+- bermusyawarah: そうだんします
+- meminta: たのみます
+- cukup: たります
+- menutup (mata): とじます
+- panjangnya: ながさ
+- mengukur: はかります
+- lapangan: ひろば
+- negatif film: フィルム
+- pakaian: ふく
+- tepat waktu: まにあいます
+- kembali: もどります
+- berhenti: やめます
+- lampu: ランプ
+**Bab 24**
+- mengumpulkan: あつめます
+- terbuka: あきます
+- tanda keselamatan: あんぜんひょうしき
+- memasukan: いれます
+- bergerak: うごきます
+- pegawai stasiun: えきいん
+- mendorong: おします
+- membutuhkan waktu: かかります
+- menggunakan: かけます
+- flu/masuk angin: かぜをひきます
+- kalender: カレンダー
+- tiba-tiba: きゅうに
+- terjatuh: ころびます
+- merusak: こわします
+- menancapkan: さします
+- sebentar/tak lama: しばらく
+- tertutup: しまります
+- kipas angin: せんぷうき
+- alat penghisap debu: そうじき
+- lemari (laci): たんす
+- tiba (datang): つきます
+- menyalakan: つけます
+- mati listrik: ていでん
+- truk: トラック
+- menempelkan: はります
+- laci: ひきだし
+- sampul/jilid: ひょうし
+- jawab: へんじ
+- rumah: ホーム
+- papan tulis putih: ホワイトボード
+- rak buku: ほんだな
+- salah keliru: まちがえます
+- berputar: まわります
+**Bab 25**
+- lembaran soal: もんだいしょ
+- kentang: じゃがいも
+- konsentrasi: しゅうちゅうします
+- tahun baru: しょうがつ
+- tumbang/roboh: たおれます
+- menyetel: ちょうせつします
+- melanjutkan: つづけます
+- kuat/kencang: つよい
+- jagung: とうもろこし
+- harga: ねだん
+- cerah: はれます
+- matahari terbit: ひので
+- bertiup: ふきます
+- perahu (boat): ボート
+- bonus: ボーナス
+- petang/sore: ゆうがた
+- rencana: よてい
+- ketua: リーダー
+**Bab 26**
+- lantai: ゆか
+- lampu merah: あかしんごう
+- bahasa arab: アラビアご
+- orang islam: イスラムのひと
+- suara: おと
+- berat: おもい
+- cara berenang: およぎかた
+- buku petunjuk: ガイドブック
+- mesin: きかい
+- peraturan: きそく
+- daging sapi: ぎゅうにく
+- merakit: くみたてます
+- berawan / mendung: くもり
+- ikan: さかな
+- sayang / disesalkan: ざんねん
+- pintar: じょうず
+- shinjuku (nama daerah): しんじゅく
+- ilmu matematika: すうがく
+- sama sekali: ぜんぜん
+- tujuan / maksud: つもり
+- burung: とり
+- barang: にもつ
+- membawa / mengangkut: はこびます
+- 20 tahun: はたち
+- cerah: はれる
+- gunung fuji: ふじさん
+- daging babi: ぶたにく
+- hampir: ほとんど
+- apartemen: マンション
+- membawa: もちます
+- uang sewa rumah: やちん
+- kerja sambilan: アルバイト
+**Bab 27**
+- sake (minuman keras): おさけ
+- adik laki-laki sendiri: おとうと
+- tarian: おどり
+- memikirkan / mengira: おもいます
+- huruf kanji: かんじ
+- polisi: けいかん
+- kantor polisi: けいさつ
+- upacara pernikahan: けっこんしき
+- taman: こうえん
+- lulus: ごうかくします
+- persimpangan: こうさてん
+- anak: こども
+- sandwich: サンドイッチ
+- ujian: しけん
+- diri sendiri: じぶん
+- masa depan: しょうらい
+- pasti / tentu: ぜひ
+- sekolah kejuruan: せんもんがっこう
+- tamat / lulus sekolah: そつぎょうします
+- berat / sulit: たいへん
+- mendirikan: たてます
+- menabung: ちょきんします
+- dingin: つめたい
+- menginap: とまります
+- memanjat: のぼります
+- haus: のどがかわきます
+- kamar: へや
+- saya: ぼく
+- toko: みせ
+- membakar: やきます
+- impian / cita-cita: ゆめ
+- menyebrang: わたります
+- hangat: あたたかい
+**Bab 28**
+- bioskop: えいがかん
+- mengirim: おくります
+- jatuh: おちます
+- menarik: おもしろい
+- turun kendaraan: おります
+- payung: かさ
+- sungai: かわ
+- papan reklame: かんばん
+- putus: きれます
+- berkelahi / bertengkar: けんか
+- menyapa: こえをかけます
+- iklan TV: コマーシャル (CM)
+- terjatuh: ころびます
+- konser: コンサート
+- pelajaran: じゅぎょう
+- pekerjaan rumah: しゅくだい
+- hebat / luar biasa: すごい
+- langit: そら
+- tidak lama lagi: そろそろ
+- penting / berharga: たいせつな
+- topan: たいふう
+- tumbang / roboh: たおれます
+- pemberhentian / batal: ちゅうし
+- kuat / kencang: つよい
+- prakiraan cuaca: てんきよほう
+- kawat listrik: でんせん
+- perpustakaan: としょかん
+- menangis: なきます
+- bau: におい
+- berangkat (bis dll): はっしゃします
+- separuh / setengah: はんぶん
+- pakaian: ふく
+- menabrak: ぶつかります
+- tiang: ポール
+- pertama-tama: はじめ
+- tekun / serius / rajin: まじめ
+- tidak enak: まずい
+- masalah: もんだい
+- janji: やくそく
+- berhenti (hujan): やみます
+- kelihatannya baik: よさそうな
+- kedai ramen: ラーメンや
+**Bab 29**
+- menunggu dengan senang: たのしみにします
+- menurut: ～によると
+- manis: あまい
+- memandu: あんないします
+- ueno (nama kota): うえの
+- mengikuti (ujian): うけます
+- istri (orang lain): おくさん
+- pergi mengantar: おくっていきます
+- festival / perayaan: おまつり
+- manis / cantik: かわいい
+- bahaya: きけん
+- pertemuan kelas: クラスかい
+- tempat lapangan kerja: げんば
+- penuh orang: こみます
+- lembur: ざんぎょう
+- kecelakaan: じこ
+- kantor cabang: ししゃ
+- Sydney: シドニー
+- tidak penuh: すきます
+- terus-menerus: ずっと
+- pas: ちょうど
+- memancing ikan: つり
+- susah: なかなか
+- antri: ならびます
+- pahit: にがい
+- berita: ニュース
+- harga: ねだん
+- hokkaido: ほっかいどう
+- kantor pusat: ほんしゃ
+- kota: まち
+- sayur: やさい
+- keperluan: ようじ
+- mabuk: よっぱらいます
+**Bab 30**
+- pendapat / ide: いけん
+- memilih: えらびます
+- marah: おこります
+- menghias: かざります
+- gerakan / jurus: かた
+- merasa sedih: かなしみます
+- pelatih: かんとく
+- memakaikan: きせます
+- sulit / berat: きつい
+- istirahat (sebentar): きゅうけいします
+- buku pelajaran: きょうかしょ
+- lapangan: グランド
+- dengan detail / rinci: くわしく
+- hari sabtu berikutnya: こんどのどようび
+- pertandingan: しあい
+- cara: しかた
+- ekstrakurikuler judo: じゅうどうぶ
+- les privat / kursus: じゅく
+- pemanasan: じゅんびうんどう
+- joging: ジョギング
+- jumlah penduduk: じんこう
+- senior: せんぱい
+- memukul (menampar): たたきます
+- benar: ただしい
+- team: チーム
+- melanjutkan: つづけます
+- menjadi biasa: なれます
+- mencuri: ぬすみます
+- juara: ゆうしょう
+- gembira: よろこびます
+- kedua orang tua: りょうしん
+- latihan: れんしゅう
+**Bab 31**
+- melaksanakan (pesta): パーティーをひらきます
+- 1.300.000.000 orang: 13おく人
+- bangun kesiangan: あさねぼう
+- anjing: いぬ
+- tidak menyenangkan: いやな
+- ruangan pegawai stasiun: えきいんしつ
+- melaksanakan (pesta): おこないます
+- pintu pemeriksaan karcis: かいさつぐち
+- membangunkan: おこします
+- terlambat: おくれます
+- penyanyi: かしゅ
+- sedih: かなしい
+- menggigit: かみます
+- musim: きせつ
+- perintah: しじ
+- punggung: せなか
+- kehormatan: そんけい
+- menangkap: つかまえます
+- pencuri: どろぼう
+- memukul (meninju): なぐります
+- kabur / melarikan diri: にげます
+- buku harian / diary: にっき
+- dicuri: ぬすまれます
+- memungut: ひろいます
+- di injak: ふまれます
+- melulu / baru saja: ばかり
+- barang cacat: ふりょうひん
+- hukuman: ペナルティー
+- memuji: ほめます
+- benar-benar: ほんとう
+- jam beker: めざましどけい
+- robek: やぶれます
+- muda: わかい
+**Bab 32**
+- memecahkan: わります
+- lega: あんしん
+- sakit: いたい
+- tamu: おきゃくさん
+- orang yang sudah tua: おとしより
+- kare: カレー
+- kasihan: かわいそう
+- membenci: きらいです
+- obat: くすり
+- hasil: けっか
+- pemeriksaan: けんさ
+- menolak: ことわります
+- takut / menakutkan: こわい
+- akhir minggu: しゅうまつ
+- khawatir: しんぱい
+- menawarkan: すすめます
+- alat pemanas ruangan: ストーブ
+- pasti: ぜったい
+- dirawat di rumah sakit: にゅういん
+- setengah tahun: はんとし
+- mendinginkan: ひやします
+- bodoh: へた
+- mendaftar: もうしこみます
+- ujian percobaan: もぎしけん
+- kembali: もどります
+- salju: ゆき
+**Bab 33**
+- merayakan: いわいます
+- terkejut: おどろきます
+- mainan: おもちゃ
+- foto kenang-kenangan: きねんしゃしん
+- hari peringatan: きねんび
+- bandara: くうこう
+- santa claus: サンタクロース
+- huruf: じ
+- kamus: じしょ
+- mengundang: しょうたいします
+- buah semangka: すいか
+- berdiskusi / konsultasi: そうだんします
+- menolong: たすけます
+- tiket: チケット
+- coklat: チョコレート
+- kebun binatang: どうぶつえん
+- gaun: ドレス
+- belajar: ならいます
+- boneka: にんぎょう
+- dengan selamat: ぶじ / ぶじに
+- memberikan hadiah: プレゼントします
+- mempersiapkan: よういします
+- sesudah 10 tahun: 10ねんぶり
+**Bab 34**
+- rumah / kediaman: おたく
+- ekonomi: けいざい
+- ahli / spesialisasi: せんもんか
+- pas / tepat: ちょうど
+- bertugas / bekerja: つとめます
+- pesan (lisan): でんごん
+- pertemuan / acara: とうろんかい
+- lumayan: まあまあ
+- selamat datang: ようこそ
+- mengagumkan: りっぱな
+**Bab 35**
+- bayi: あかちゃん
+- bau yang enak: いいにおい
+- tante sendiri: おば
+- orang kaya: かねもち
+- baterai: かんでんち
+- pacar / kekasih: こいびと
+- seperti ini: こんな
+- gagang telepon: じゅわき
+- atlet: せんしゅ
+- jasa pengiriman barang: たくはいびん
+`;
+
+/* ================= Data ================= */
+function parseRawData(text) {
+    const words = [], order = [];
+    let bab = '';
+    text.split('\n').forEach(line => {
+        line = line.trim();
+        if (line.startsWith('**Bab')) {
+            bab = line.replace(/\*/g, '').trim();
+            order.push(bab);
+        } else if ((line.startsWith('- ') || line.startsWith('* ')) && bab) {
+            const rest = line.substring(2);
+            const p = rest.indexOf(':');
+            if (p > 0) {
+                const indo = rest.slice(0, p).trim();
+                const jpn = rest.slice(p + 1).replace(/\\/g, '').trim();
+                if (indo && jpn) words.push({ bab, indo, jpn, key: bab + '|' + indo + '|' + jpn });
+            }
+        }
+    });
+    return { words, order };
+}
+
+const parsed = parseRawData(rawData);
+const words = parsed.words;
+const order = parsed.order.filter(b => words.some(w => w.bab === b));
+const byBab = {};
+words.forEach(w => (byBab[w.bab] = byBab[w.bab] || []).push(w));
+
+/* ================= Penyimpanan ================= */
+const PKEY = 'jft_progress_v1', SKEY = 'jft_settings_v1';
+function loadJSON(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+let known = loadJSON(PKEY) || {};
+const defaults = { chapter: order[0], dir: 'jp2id', mode: 'card', onlyUnknown: false, shuffle: true };
+let state = Object.assign({}, defaults, loadJSON(SKEY) || {});
+if (state.chapter !== 'ALL' && !byBab[state.chapter]) state.chapter = order[0];
+if (state.mode !== 'quiz') state.mode = 'card';
+if (state.dir !== 'id2jp') state.dir = 'jp2id';
+
+const isKnown = w => !!known[w.key];
+function setKnown(w, v) {
+    if (v) known[w.key] = 1; else delete known[w.key];
+    saveJSON(PKEY, known);
+}
+const saveState = () => saveJSON(SKEY, state);
+
+/* ================= Util ================= */
+const $ = id => document.getElementById(id);
+const el = {
+    app: $('app'), select: $('chapterSelect'), cc: $('cc'), card: $('card'),
+    fLabel: $('fLabel'), fWord: $('fWord'), bLabel: $('bLabel'), bWord: $('bWord'),
+    progress: $('progressText'), barFill: $('barFill'), statText: $('statText'),
+    qProgress: $('qProgress'), qScore: $('qScore'), qLabel: $('qLabel'),
+    qWord: $('qWord'), qSub: $('qSub'), qSpeak: $('qSpeak'), opts: $('opts'), toast: $('toast')
+};
+
+function shuffled(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function sizeFor(text, isJp) {
+    const n = [...text].length;
+    if (isJp) return n <= 5 ? 52 : n <= 8 ? 44 : n <= 12 ? 36 : n <= 18 ? 28 : 22;
+    return n <= 8 ? 42 : n <= 14 ? 34 : n <= 22 ? 28 : n <= 34 ? 24 : 20;
+}
+function setWord(node, text, isJp) {
+    node.textContent = text;
+    node.lang = isJp ? 'ja' : 'id';
+    node.style.fontSize = sizeFor(text, isJp) + 'px';
+}
+
+let toastTimer;
+function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2400);
+}
+
+/* ================= Suara ================= */
+function cleanJp(t) {
+    return t.split(' / ')[0].replace(/\(.*?\)/g, '').replace(/[～~]/g, '').trim();
+}
+function speak(text) {
+    if (!('speechSynthesis' in window)) { toast('Perangkat ini belum mendukung suara'); return; }
+    const voices = speechSynthesis.getVoices();
+    const ja = voices.find(v => v.lang && v.lang.toLowerCase().replace('_', '-').startsWith('ja'));
+    if (voices.length && !ja) toast('Suara Jepang belum terpasang di HP (cek pengaturan Text-to-speech)');
+    const u = new SpeechSynthesisUtterance(cleanJp(text));
+    u.lang = 'ja-JP'; u.rate = 0.85;
+    if (ja) u.voice = ja;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+}
+if ('speechSynthesis' in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; }
+
+/* ================= Deck & statistik ================= */
+let deck = [], idx = 0, animating = false;
+
+function scopeWords() {
+    return state.chapter === 'ALL' ? words : (byBab[state.chapter] || []);
+}
+function scopeName() {
+    return state.chapter === 'ALL' ? 'semua bab' : state.chapter;
+}
+
+function buildChapterSelect() {
+    el.select.innerHTML = '';
+    const all = document.createElement('option');
+    all.value = 'ALL';
+    el.select.appendChild(all);
+    order.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b;
+        el.select.appendChild(o);
+    });
+    refreshChapterLabels();
+    el.select.value = state.chapter;
+}
+function refreshChapterLabels() {
+    [...el.select.options].forEach(o => {
+        const list = o.value === 'ALL' ? words : byBab[o.value];
+        const k = list.filter(isKnown).length;
+        o.textContent = (o.value === 'ALL' ? '📚 Semua Bab' : o.value) + '  ·  ' + k + '/' + list.length;
+    });
+}
+
+function updateStats() {
+    const sc = scopeWords();
+    const k = sc.filter(isKnown).length;
+    el.barFill.style.width = (sc.length ? (k / sc.length) * 100 : 0) + '%';
+    $('statText').textContent = k + '/' + sc.length + ' hafal';
+    refreshChapterLabels();
+}
+
+function buildDeck() {
+    let list = scopeWords();
+    if (state.onlyUnknown) list = list.filter(w => !isKnown(w));
+    deck = state.shuffle ? shuffled(list) : list.slice();
+    idx = 0;
+}
+
+/* ================= Mode kartu ================= */
+function renderCard() {
+    const w = deck[idx];
+    const jp2id = state.dir === 'jp2id';
+    el.cc.classList.toggle('known', !!w && isKnown(w));
+
+    if (!w) {
+        el.fLabel.textContent = 'Selesai'; el.bLabel.textContent = 'Selesai';
+        const msg = state.onlyUnknown
+            ? '🎉 Semua kata di sini sudah hafal! Matikan "Belum hafal" untuk mengulang.'
+            : 'Tidak ada kata di bab ini.';
+        setWord(el.fWord, msg, false); setWord(el.bWord, msg, false);
+        el.fWord.style.fontSize = el.bWord.style.fontSize = '22px';
+        el.progress.textContent = '0 / 0';
+        return;
+    }
+    el.fLabel.textContent = jp2id ? '日本語' : 'B. Indonesia';
+    el.bLabel.textContent = jp2id ? 'B. Indonesia' : '日本語';
+    setWord(el.fWord, jp2id ? w.jpn : w.indo, jp2id);
+    setWord(el.bWord, jp2id ? w.indo : w.jpn, !jp2id);
+    el.progress.textContent = (idx + 1) + ' / ' + deck.length;
+}
+
+function swap(dir, change) {
+    if (animating) return;
+    animating = true;
+    el.cc.classList.add(dir);
+    setTimeout(() => {
+        el.card.style.transition = 'none';
+        el.card.classList.remove('flipped');
+        el.cc.style.transition = 'none';
+        el.cc.classList.remove(dir);
+        change();
+        renderCard();
+        void el.cc.offsetWidth;
+        el.card.style.transition = '';
+        el.cc.style.transition = '';
+        el.cc.classList.add('pop');
+        setTimeout(() => el.cc.classList.remove('pop'), 220);
+        animating = false;
+    }, 190);
+}
+
+function flipCard() {
+    if (!deck.length || animating) return;
+    el.card.classList.toggle('flipped');
+}
+function nextCard() {
+    if (!deck.length) return;
+    swap('out-left', () => { idx = (idx + 1) % deck.length; });
+}
+function prevCard() {
+    if (!deck.length) return;
+    swap('out-right', () => { idx = (idx - 1 + deck.length) % deck.length; });
+}
+function markCard(isHafal) {
+    const w = deck[idx];
+    if (!w || animating) return;
+    setKnown(w, isHafal);
+    updateStats();
+    swap(isHafal ? 'out-right' : 'out-left', () => {
+        if (state.onlyUnknown && isHafal) {
+            deck.splice(idx, 1);
+            if (idx >= deck.length) idx = 0;
+        } else {
+            idx = (idx + 1) % deck.length;
+        }
+    });
+}
+function speakCurrent() {
+    const w = deck[idx];
+    if (w) speak(w.jpn);
+}
+
+/* Geser kartu */
+let tx = 0, ty = 0, swiped = false;
+el.cc.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0];
+    tx = t.clientX; ty = t.clientY; swiped = false;
+}, { passive: true });
+el.cc.addEventListener('touchend', e => {
+    const t = e.changedTouches[0];
+    const dx = t.clientX - tx, dy = t.clientY - ty;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        swiped = true;
+        markCard(dx > 0);
+    }
+}, { passive: true });
+el.cc.addEventListener('click', () => {
+    if (swiped) { swiped = false; return; }
+    flipCard();
+});
+
+/* ================= Mode kuis ================= */
+const quiz = { queue: [], total: 0, correct: 0, wrong: 0, current: null, locked: false, timer: null };
+
+function makeOptions(w) {
+    const jp2id = state.dir === 'jp2id';
+    const correctText = jp2id ? w.indo : w.jpn;
+    const seen = new Set([correctText]);
+    const opts = [];
+    for (const x of shuffled(words)) {
+        if (opts.length >= 3) break;
+        const t = jp2id ? x.indo : x.jpn;
+        if (seen.has(t)) continue;
+        if (jp2id && x.jpn === w.jpn) continue;   // bacaan sama = jawaban ambigu
+        if (!jp2id && x.indo === w.indo) continue;
+        seen.add(t);
+        opts.push({ text: t, correct: false });
+    }
+    opts.push({ text: correctText, correct: true });
+    return shuffled(opts);
+}
+
+function startQuiz() {
+    clearTimeout(quiz.timer);
+    let list = scopeWords();
+    if (state.onlyUnknown) list = list.filter(w => !isKnown(w));
+    quiz.queue = shuffled(list);
+    quiz.total = quiz.queue.length;
+    quiz.correct = 0; quiz.wrong = 0; quiz.current = null; quiz.locked = false;
+    nextQuestion();
+}
+
+function updateQuizScore() {
+    el.qScore.textContent = '✅ ' + quiz.correct + '   ❌ ' + quiz.wrong;
+}
+
+function nextQuestion() {
+    if (state.mode !== 'quiz') return;
+    quiz.locked = false;
+    updateQuizScore();
+    if (!quiz.queue.length) { showResult(); return; }
+
+    const w = quiz.queue.pop();
+    const jp2id = state.dir === 'jp2id';
+    quiz.current = { word: w, options: makeOptions(w) };
+
+    el.qLabel.textContent = jp2id ? '日本語' : 'B. Indonesia';
+    setWord(el.qWord, jp2id ? w.jpn : w.indo, jp2id);
+    el.qSub.textContent = '';
+    el.qSpeak.style.display = jp2id ? 'flex' : 'none';
+    el.qProgress.textContent = 'Soal ' + (quiz.correct + quiz.wrong + 1) + ' / ' + quiz.total;
+
+    el.opts.innerHTML = '';
+    quiz.current.options.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.className = 'opt' + (jp2id ? '' : ' jp');
+        b.lang = jp2id ? 'id' : 'ja';
+        b.textContent = o.text;
+        b.addEventListener('click', () => answerQuiz(i));
+        el.opts.appendChild(b);
+    });
+}
+
+function answerQuiz(i) {
+    if (quiz.locked || !quiz.current) return;
+    quiz.locked = true;
+    const { word, options } = quiz.current;
+    const btns = [...el.opts.children];
+    options.forEach((o, k) => { if (o.correct) btns[k].classList.add('right'); });
+    if (options[i].correct) {
+        quiz.correct++; setKnown(word, true);
+    } else {
+        btns[i].classList.add('wrong'); quiz.wrong++; setKnown(word, false);
+    }
+    updateStats();
+    updateQuizScore();
+    quiz.timer = setTimeout(nextQuestion, options[i].correct ? 650 : 1700);
+}
+
+function showResult() {
+    el.qSpeak.style.display = 'none';
+    el.opts.innerHTML = '';
+    const done = quiz.correct + quiz.wrong;
+    if (!done) {
+        el.qLabel.textContent = 'Kuis';
+        setWord(el.qWord, state.onlyUnknown ? '🎉 Semua sudah hafal!' : 'Belum ada kata.', false);
+        el.qWord.style.fontSize = '26px';
+        el.qSub.textContent = '';
+        el.qProgress.textContent = '';
+    } else {
+        const pct = Math.round((quiz.correct / done) * 100);
+        el.qLabel.textContent = 'Hasil kuis';
+        setWord(el.qWord, pct + '%', false);
+        el.qWord.style.fontSize = '60px';
+        el.qSub.textContent = 'Benar ' + quiz.correct + ' dari ' + done + ' soal';
+        el.qProgress.textContent = 'Selesai';
+    }
+    const again = document.createElement('button');
+    again.className = 'opt'; again.textContent = '🔁 Ulangi kuis';
+    again.addEventListener('click', startQuiz);
+    const back = document.createElement('button');
+    back.className = 'opt'; back.textContent = '🃏 Kembali ke kartu';
+    back.addEventListener('click', () => { state.mode = 'card'; applySettings(); });
+    el.opts.append(again, back);
+}
+
+/* ================= Pengaturan ================= */
+function updateChips() {
+    $('tabCard').classList.toggle('on', state.mode === 'card');
+    $('tabQuiz').classList.toggle('on', state.mode === 'quiz');
+    $('dirBtn').textContent = state.dir === 'jp2id' ? '日本語 → ID' : 'ID → 日本語';
+    $('shuffleBtn').textContent = state.shuffle ? '🔀 Acak' : '↕ Urut';
+    $('shuffleBtn').classList.toggle('on', state.shuffle);
+    $('unknownBtn').classList.toggle('on', state.onlyUnknown);
+    el.app.classList.toggle('quizmode', state.mode === 'quiz');
+}
+
+function applySettings() {
+    saveState();
+    updateChips();
+    el.select.value = state.chapter;
+    updateStats();
+    buildDeck();
+    el.card.classList.remove('flipped');
+    if (state.mode === 'quiz') startQuiz(); else renderCard();
+}
+
+$('tabCard').addEventListener('click', () => { state.mode = 'card'; applySettings(); });
+$('tabQuiz').addEventListener('click', () => { state.mode = 'quiz'; applySettings(); });
+$('dirBtn').addEventListener('click', () => { state.dir = state.dir === 'jp2id' ? 'id2jp' : 'jp2id'; applySettings(); });
+$('shuffleBtn').addEventListener('click', () => { state.shuffle = !state.shuffle; applySettings(); });
+$('unknownBtn').addEventListener('click', () => { state.onlyUnknown = !state.onlyUnknown; applySettings(); });
+el.select.addEventListener('change', () => { state.chapter = el.select.value; applySettings(); });
+$('resetBtn').addEventListener('click', () => {
+    if (!confirm('Reset progres hafalan untuk ' + scopeName() + '?')) return;
+    scopeWords().forEach(w => delete known[w.key]);
+    saveJSON(PKEY, known);
+    applySettings();
+    toast('Progres ' + scopeName() + ' direset');
+});
+
+$('prevBtn').addEventListener('click', prevCard);
+$('nextBtn').addEventListener('click', nextCard);
+$('yesBtn').addEventListener('click', () => markCard(true));
+$('noBtn').addEventListener('click', () => markCard(false));
+$('soundBtn').addEventListener('click', speakCurrent);
+el.qSpeak.addEventListener('click', () => { if (quiz.current) speak(quiz.current.word.jpn); });
+
+document.addEventListener('keydown', e => {
+    if (state.mode !== 'card') return;
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'SELECT') return;
+    if (e.key === 'ArrowRight') nextCard();
+    else if (e.key === 'ArrowLeft') prevCard();
+    else if (e.key === ' ' || e.key === 'Enter') { if (tag !== 'BUTTON') { e.preventDefault(); flipCard(); } }
+    else if (e.key === 'h') markCard(true);
+    else if (e.key === 'b') markCard(false);
+    else if (e.key === 's') speakCurrent();
+});
+
+/* ================= PWA ================= */
+let deferredPrompt = null;
+const installBtn = $('installBtn');
+const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!standalone) installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+});
+window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; toast('Aplikasi terpasang 🎉'); });
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+/* ================= Mulai ================= */
+buildChapterSelect();
+applySettings();
+</script>
+</body>
+</html>
